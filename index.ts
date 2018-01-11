@@ -1,4 +1,3 @@
-import { Slack } from './slack';
 import { Poloniex } from './exchanges/poloniex.exchange';
 import { Bittrex } from './exchanges/bittrex.exchange';
 import { HitBtc } from './exchanges/hitbtc.exchange';
@@ -12,7 +11,6 @@ var fs = require('fs');
 var hitbtc = new HitBtc();
 var bittrex = new Bittrex();
 var poloniex = new Poloniex();
-var slackkey = "";
 
 // Check if a file exists
 var FileExists = (filePath: string) : boolean => {
@@ -33,11 +31,10 @@ var PrintSettings = () => {
     Maxbottomdist: ${CurrencyPair.maxbottomdistance}
     Maxskipcandles: ${CurrencyPair.maxskipcandles}
     Ignorenewer: ${CurrencyPair.ignoreNewer}
-    UseSlack: ${CurrencyPair.useSlack}
-    SlackKey: ${slackkey}`);
+  
 }
 
-// Read settings for this currency pair. The settings are the slack thread id and whether to ignore the currency pair (in case of delisting etc)
+// Read settings for this currency pair. The settings are the  thread id and whether to ignore the currency pair (in case of delisting etc)
 var ReadSettings = () => {
     let settingsFile = './data/scanner.settings.json';
     if(FileExists(settingsFile)) {
@@ -54,10 +51,7 @@ var ReadSettings = () => {
             CurrencyPair.maxskipcandles = settings.maxSkipCandles;
         if(settings.ignoreNewer)
             CurrencyPair.ignoreNewer = settings.ignoreNewer;
-        if(settings.useSlack)
-            CurrencyPair.useSlack = settings.useSlack;
-        if(settings.slackKey)
-            slackkey = settings.slackKey;
+      
     }
 }
 
@@ -71,15 +65,11 @@ var WriteSettings = () => {
         maxBottomDist: CurrencyPair.maxbottomdistance,
         maxSkipCandles: CurrencyPair.maxskipcandles,
         ignoreNewer: CurrencyPair.ignoreNewer,
-        useSlack: CurrencyPair.useSlack,
-        slackKey: slackkey
     };
     fs.writeFileSync(settingsFile, JSON.stringify(settings), 'utf8');
 }
 
-ReadSettings();
-if(slackkey && slackkey.length > 0)
-    Slack.setKey(slackkey);
+
 // Download history for one exchange at a time to avoid high load on Coinigy servers
 // Start subscribing to HitBTC ticker, 1000ms refresh rate
 //hitbtc.TickerTimer(1000);
@@ -143,21 +133,6 @@ cli.command('ignorenewer <hours>').description('Number of hours to ignore newer 
     cb();
 });
 
-cli.command('slack <use>').description('Send alerts to Slack').action((a, cb) => {
-    CurrencyPair.useSlack = a.use;
-    console.log('Sending to Slack ' + (CurrencyPair.useSlack?"enabled":"disabled"));
-    PrintSettings();
-    cb();
-});
-
-cli.command('slackkey <key>').description('Slack api key').action((a, cb) => {
-    slackkey = a.key;
-    Slack.setKey(slackkey);
-
-    console.log('Setting Slack key to ' + a.key);
-    PrintSettings();
-    cb();
-});
 
 cli.command('save').description('Save settings').action((a, cb) => {
     WriteSettings();
